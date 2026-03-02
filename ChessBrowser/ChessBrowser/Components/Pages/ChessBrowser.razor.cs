@@ -36,6 +36,9 @@ namespace ChessBrowser.Components.Pages
     /// <param name="PGNFileLines">The lines from the selected file</param>
     private async Task InsertGameData(string[] PGNFileLines)
     {
+            PgnParser parser = new PgnParser();
+            List<ChessGame> gamesList = parser.Parse(PGNFileLines);
+            Debug.WriteLine("Size of gamesList: " + gamesList.Count() + "---------------");
       // This will build a connection string to your user's database on atr,
       // assuimg you've filled in the credentials in the GUI
       string connection = GetConnectionString();
