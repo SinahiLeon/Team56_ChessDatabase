@@ -18,31 +18,31 @@ namespace ChessBrowser.Components
                 if (counter < 10)
                 {
 
-                    if (strings[0].StartsWith("[Event"))
+                    if (strings[0].StartsWith("[Event "))
                     {
                         game.Event = strings[1];
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("[Site"))
+                    else if (strings[0].StartsWith("[Site "))
                     {
                         game.Site = strings[1];
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("[Round"))
+                    else if (strings[0].StartsWith("[Round "))
                     {
                         game.Round = strings[1];
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("[White"))
+                    else if (strings[0].StartsWith("[White "))
                     {
                         game.White = strings[1];
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("[Black"))
+                    else if (strings[0].StartsWith("[Black "))
                     {
                         game.White = strings[1];
                         counter++;
@@ -60,7 +60,7 @@ namespace ChessBrowser.Components
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("[Result"))
+                    else if (strings[0].StartsWith("[Result "))
                     {
                         if (strings[1] == "0-1")
                         {
@@ -77,13 +77,13 @@ namespace ChessBrowser.Components
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("[EventDate"))
+                    else if (strings[0].StartsWith("[EventDate "))
                     {
                         game.EventDate = strings[1];
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("/n"))
+                    else if (string.IsNullOrWhiteSpace(strings[0]))
                     {
                         counter++;
                     }
@@ -91,7 +91,7 @@ namespace ChessBrowser.Components
 
                 else if(counter == 10)
                 {
-                    if (strings[0].StartsWith("/n"))
+                    if (string.IsNullOrWhiteSpace(strings[0]))
                     {
                         counter++;
                     }else
@@ -101,14 +101,13 @@ namespace ChessBrowser.Components
 
                 }
 
-                else if (counter == 11)
+                if (counter == 11)
                 {
-                    Console.WriteLine("Counter == 11");
                     listOfGames.Add(game);
+                    Console.WriteLine(game.Event + " has been added to the list!");
                     counter = 0;
                     game = new ChessGame();
                 }
-                Console.WriteLine("Counter: " + counter);
 
             }
             return listOfGames;
