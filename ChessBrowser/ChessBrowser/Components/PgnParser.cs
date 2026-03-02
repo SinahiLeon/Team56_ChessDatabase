@@ -89,7 +89,7 @@ namespace ChessBrowser.Components
                     }
                 }
 
-                else if(counter > 10)
+                else if(counter == 10)
                 {
                     if (strings[0].StartsWith("/n"))
                     {
@@ -97,7 +97,6 @@ namespace ChessBrowser.Components
                     }else
                     {
                         game.Moves += strings[0];
-                        counter++;
                     }
 
                 }
@@ -109,6 +108,7 @@ namespace ChessBrowser.Components
                     counter = 0;
                     game = new ChessGame();
                 }
+                Console.WriteLine("Counter: " + counter);
 
             }
             return listOfGames;
