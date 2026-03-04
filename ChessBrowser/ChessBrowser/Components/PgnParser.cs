@@ -15,7 +15,7 @@ namespace ChessBrowser.Components
             foreach (string line in PGNFileLines)
             {
                 string[] strings = line.Split('"');
-                if (counter < 10)
+                if (counter < 10)   // Want to track 9 tags + Moves
                 {
 
                     if (strings[0].StartsWith("[Event "))
@@ -44,17 +44,17 @@ namespace ChessBrowser.Components
 
                     else if (strings[0].StartsWith("[Black "))
                     {
-                        game.White = strings[1];
+                        game.Black = strings[1];
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("[WhiteElo"))
+                    else if (strings[0].StartsWith("[WhiteElo "))
                     {
                         game.WhiteElo = int.Parse(strings[1]);
                         counter++;
                     }
 
-                    else if (strings[0].StartsWith("[BlackElo"))
+                    else if (strings[0].StartsWith("[BlackElo "))
                     {
                         game.BlackElo = int.Parse(strings[1]);
                         counter++;
@@ -83,9 +83,9 @@ namespace ChessBrowser.Components
                         counter++;
                     }
 
-                    else if (string.IsNullOrWhiteSpace(strings[0]))
+                    else if (string.IsNullOrWhiteSpace(strings[0]) && counter == 9)
                     {
-                        counter++;
+                        counter++;  // All 9 tags were found, now store Moves
                     }
                 }
 
@@ -93,10 +93,10 @@ namespace ChessBrowser.Components
                 {
                     if (string.IsNullOrWhiteSpace(strings[0]))
                     {
-                        counter++;
+                        counter++;  // Counter == 11, end of game
                     }else
                     {
-                        game.Moves += strings[0];
+                        game.Moves += line + "\n";  // we are iterating for each line, add full line to game.Moves
                     }
 
                 }
