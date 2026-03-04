@@ -104,7 +104,6 @@ namespace ChessBrowser.Components
                 if (counter == 11)
                 {
                     listOfGames.Add(game);
-                    Console.WriteLine(game.Event + " has been added to the list!");
                     counter = 0;
                     game = new ChessGame();
                 }
