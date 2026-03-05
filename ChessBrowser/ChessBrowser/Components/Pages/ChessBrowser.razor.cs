@@ -60,61 +60,77 @@ namespace ChessBrowser.Components.Pages
                     // TODO:
                     //   Iterate through your data and generate appropriate insert commands     
                     Progress = 0;
-                    MySqlCommand command = conn.CreateCommand();
-                    command.CommandText =
-                    "insert into Players (Name, Elo) " +
-                    "values (@whiteName, @whiteElo) on duplicate key update Elo = if(@whiteElo > Elo, @whiteElo, Elo); " +
-                    "insert into Players (Name, Elo) " +
-                    "values (@blackName, @eblackElo) on duplicate key update Elo = if(@blackElo > Elo, @blackElo, Elo);" +
-                    "insert ignore into Events(Name, Site, Date) " +
-                    "values (@eventName, @site, @date) ;" +
-                    "insert ignore into Games(Round, Result, Moves, BlackPlayer, WhitePlayer, eID) " +
-                    "values (@round, @result, @moves, (select pID from Players where Name=@blackName), (select pID from Players where Name=@whiteName), (select eID from Events where Name=@eventName));";
+                    MySqlCommand whitePlayerCmd = conn.CreateCommand();
+                    whitePlayerCmd.CommandText = "INSERT INTO Players (Name, Elo) VALUES (@name, @elo) ON DUPLICATE KEY UPDATE Elo = IF(@elo > Elo, @elo, Elo);";
+                    whitePlayerCmd.Parameters.AddWithValue("@name", "");
+                    whitePlayerCmd.Parameters.AddWithValue("@elo", 0);
+                    whitePlayerCmd.Prepare();
 
+                    MySqlCommand blackPlayerCmd = conn.CreateCommand();
 
-                    command.Parameters.AddWithValue("@whiteName", "whiteName");
-                    command.Parameters.AddWithValue("@whiteElo", 1000);
-                    command.Parameters.AddWithValue("@blackName", "blackName");
-                    command.Parameters.AddWithValue("@blackElo", 1000);
+                    blackPlayerCmd.CommandText = "INSERT INTO Players (Name, Elo) VALUES (@name, @elo) ON DUPLICATE KEY UPDATE Elo = IF(@elo > Elo, @elo, Elo);";
+                    
+                    blackPlayerCmd.Parameters.AddWithValue("@name", "");
+                    blackPlayerCmd.Parameters.AddWithValue("@elo", 0);
+                    
+                    blackPlayerCmd.Prepare();
 
-                    command.Parameters.AddWithValue("@eventName", "eventName");
-                    command.Parameters.AddWithValue("@site", "site");
-                    command.Parameters.AddWithValue("@date", "0000-00-00");
+                    MySqlCommand eventCmd = conn.CreateCommand();
+                    eventCmd.CommandText = "INSERT IGNORE INTO Events(Name, Site, Date) VALUES (@eventName, @site, @date);";
 
-                    command.Parameters.AddWithValue("@round", "roundString");
-                    command.Parameters.AddWithValue("@result", "c");
-                    command.Parameters.AddWithValue("@moves", "movesString");
+                    eventCmd.Parameters.AddWithValue("@eventName", "");
+                    eventCmd.Parameters.AddWithValue("@site", "");
+                    eventCmd.Parameters.AddWithValue("@date", "0000-00-00");
+                    
+                    eventCmd.Prepare();
 
-
-                    command.Prepare();
-
-
+                    MySqlCommand gameCmd = conn.CreateCommand();
+                    gameCmd.CommandText = "INSERT IGNORE INTO Games(Round, Result, Moves, BlackPlayer, WhitePlayer, eID) " +
+                    "VALUES (@round, @result, @moves, (SELECT pID FROM Players WHERE Name=@blackName), (SELECT pID FROM Players WHERE Name=@whiteName), (SELECT eID FROM Events WHERE Name=@eventName));";
+                    
+                    gameCmd.Parameters.AddWithValue("@round", "");
+                    gameCmd.Parameters.AddWithValue("@result", "");
+                    gameCmd.Parameters.AddWithValue("@moves", "");
+                    gameCmd.Parameters.AddWithValue("@blackName", "");
+                    gameCmd.Parameters.AddWithValue("@whiteName", "");
+                    gameCmd.Parameters.AddWithValue("@eventName", "");
+                    
+                    gameCmd.Prepare();
 
                     foreach (ChessGame g in gamesList)
                     {
-                        command.Parameters["@whiteName"].Value = g.White;
-                        command.Parameters["@whiteElo"].Value = g.WhiteElo;
-                        command.Parameters["@blackName"].Value = g.Black;
-                        command.Parameters["@blackElo"].Value = g.BlackElo;
+                        // Insert white player
+                        whitePlayerCmd.Parameters["@name"].Value = g.White;
+                        whitePlayerCmd.Parameters["@elo"].Value = g.WhiteElo;
+                        whitePlayerCmd.ExecuteNonQuery();
 
-                        command.Parameters["@eventName"].Value = g.Event;
-                        command.Parameters["@site"].Value = g.Site;
-                        command.Parameters["@date"].Value = g.EventDate;
+                        // Insert black player
+                        blackPlayerCmd.Parameters["@name"].Value = g.Black;
+                        blackPlayerCmd.Parameters["@elo"].Value = g.BlackElo;
+                        blackPlayerCmd.ExecuteNonQuery();
 
-                        command.Parameters["@round"].Value = g.Round;
-                        command.Parameters["@result"].Value = g.Result;
-                        command.Parameters["@moves"].Value = g.Moves;
+                        // Insert event
+                        eventCmd.Parameters["@eventName"].Value = g.Event;
+                        eventCmd.Parameters["@site"].Value = g.Site;
+                        eventCmd.Parameters["@date"].Value = g.EventDate;
+                        eventCmd.ExecuteNonQuery();
 
-                        Debug.WriteLine("White: " + g.White + "whiteElo: " + g.WhiteElo + "black: " + 
-                            g.Black + "blackElo: " + g.BlackElo + "eventName: " + g.Event + "Site: " + g.Site + "date: " + g.EventDate +
-                            "round: " + g.Round + "Result: " + g.Result);
-
-                        int result = command.ExecuteNonQuery();
+                        // Insert game
+                        gameCmd.Parameters["@round"].Value = g.Round;
+                        gameCmd.Parameters["@result"].Value = g.Result;
+                        gameCmd.Parameters["@moves"].Value = g.Moves;
+                        gameCmd.Parameters["@blackName"].Value = g.Black;
+                        gameCmd.Parameters["@whiteName"].Value = g.White;
+                        gameCmd.Parameters["@eventName"].Value = g.Event;
                         
-                        Debug.WriteLine(result + "*************************");
+                        gameCmd.ExecuteNonQuery();
+
+                        //Debug.WriteLine("White: " + g.White + "whiteElo: " + g.WhiteElo + "black: " +
+                        //    g.Black + "blackElo: " + g.BlackElo + "eventName: " + g.Event + "Site: " + g.Site + "date: " + g.EventDate +
+                        //    "round: " + g.Round + "Result: " + g.Result);
 
                         gamesCount++;
-                        Progress = (gamesCount / totalGames) * 100;
+                        Progress = (gamesCount * 100) / totalGames;
                     }
 
 
