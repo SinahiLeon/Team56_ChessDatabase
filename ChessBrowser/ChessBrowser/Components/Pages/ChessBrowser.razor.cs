@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components.Forms;
-using System.Diagnostics;
 using MySql.Data.MySqlClient;
+using System.Diagnostics;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ChessBrowser.Components.Pages
 {
@@ -185,6 +187,60 @@ namespace ChessBrowser.Components.Pages
                     // TODO:
                     //   Generate and execute an SQL command,
                     //   then parse the results into an appropriate string and return it.
+
+                    string SQLCommandString = "select * from Games join Events on Events.eID=Games.eID";                        //"join Players as p1 on Games.BlackPlayer=(select pID from p1 where Name=" + black + ")" +
+                        //"join Players as p2 on Games.WhitePlayer=(select pID from p2 where Name=" + white + ")" +
+                        //"where Result=" + winner + "and Moves like '" + opening + "%'" + "and Date < " + start +
+                        //"and Date < " + end;
+
+               
+                    if (!string.IsNullOrWhiteSpace(white))
+                    {
+                        SQLCommandString += " join Players as p1 on Games.WhitePlayer=(select pID from p1 where Name=" + white + ")";
+                    }
+                    if (!string.IsNullOrWhiteSpace(black))
+                    {
+                        SQLCommandString += " join Players as p2 on Games.BlackPlayer=(select pID from p2 where Name=" + black + ")";
+
+                    }
+                    bool winnerExists = !string.IsNullOrWhiteSpace(winner);
+                    bool openingExists = !string.IsNullOrWhiteSpace(opening);
+                    if(winnerExists || openingExists || useDate)
+                    {
+                        SQLCommandString += " where";
+                        if (winnerExists)
+                        {
+                            SQLCommandString += " Result=" + winner;
+                        }
+                        if (openingExists)
+                        {
+                            if (winnerExists)
+                            {
+                                SQLCommandString += " and";
+                            }
+                            SQLCommandString += " Moves like '" + opening + "%'";
+                        }
+                        if (useDate)
+                        {
+                            if(winnerExists || openingExists)
+                            {
+                                SQLCommandString += " and";
+                            }
+                            SQLCommandString += " Date > " + start + "and Date < " + end;
+                        }
+                    }
+
+                    MySqlCommand command = new MySqlCommand(SQLCommandString, conn);
+
+                    using(MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+
+                        }
+                    }
+
+
                 }
                 catch (Exception e)
                 {
