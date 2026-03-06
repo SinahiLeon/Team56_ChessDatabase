@@ -6,10 +6,13 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ChessBrowser.Components.Pages
 {
+    /// <summary>
+    /// A partial class to take in user input from the web UI in order insert ChessGames given a PGN file and dynamically query for game data based on conditions.
+    /// </summary>
     public partial class ChessBrowser
     {
         /// <summary>
-        /// Bound to the Unsername form input
+        /// Bound to the Username form input
         /// </summary>
         private string Username = "";
 
@@ -42,12 +45,11 @@ namespace ChessBrowser.Components.Pages
             // assuimg you've filled in the credentials in the GUI
             string connection = GetConnectionString();
 
-            // TODO:
-            //   Parse the provided PGN data
-            //   We recommend creating separate libraries to represent chess data and load the file
+            // Parses the provided PGN file and returns a list of ChessGames extracted from it
             PgnParser parser = new PgnParser();
             List<ChessGame> gamesList = parser.Parse(PGNFileLines);
-            Debug.WriteLine("Size of gamesList: " + gamesList.Count() + " ---------------------------");
+
+            // Initialize variables to update the progress bar
             int totalGames = gamesList.Count();
             int gamesCount = 0;
 
@@ -59,9 +61,10 @@ namespace ChessBrowser.Components.Pages
                     // Open a connection
                     conn.Open();
 
-                    // TODO:
-                    //   Iterate through your data and generate appropriate insert commands     
                     Progress = 0;
+
+                    // Construct all insert statements for the Players, Events, and Games tables in advance using params to prevent injection attacks
+
                     MySqlCommand whitePlayerCmd = conn.CreateCommand();
                     whitePlayerCmd.CommandText = "INSERT INTO Players (Name, Elo) VALUES (@name, @elo) ON DUPLICATE KEY UPDATE Elo = IF(@elo > Elo, @elo, Elo);";
                     whitePlayerCmd.Parameters.AddWithValue("@name", "");
@@ -99,6 +102,7 @@ namespace ChessBrowser.Components.Pages
 
                     gameCmd.Prepare();
 
+                    // Iterates through the data and fills in params with appropriate values, and executes it   
                     foreach (ChessGame g in gamesList)
                     {
                         // Insert white player
@@ -127,10 +131,6 @@ namespace ChessBrowser.Components.Pages
 
                         gameCmd.ExecuteNonQuery();
 
-                        //Debug.WriteLine("White: " + g.White + "whiteElo: " + g.WhiteElo + "black: " +
-                        //    g.Black + "blackElo: " + g.BlackElo + "eventName: " + g.Event + "Site: " + g.Site + "date: " + g.EventDate +
-                        //    "round: " + g.Round + "Result: " + g.Result);
-
                         gamesCount++;
                         Progress = (gamesCount * 100) / totalGames;
                     }
@@ -148,10 +148,6 @@ namespace ChessBrowser.Components.Pages
             }
 
         }
-
-
-
-
 
 
 
@@ -193,10 +189,7 @@ namespace ChessBrowser.Components.Pages
                     // Open a connection
                     conn.Open();
 
-                    // TODO:
-                    //   Generate and execute an SQL command,
-                    //   then parse the results into an appropriate string and return it.
-
+                    // The string to generate a SQL command by appending appropriate query conditions based on user inputs
                     string SQLCommandString;
 
                     // if showMoves bool = selected
@@ -205,23 +198,19 @@ namespace ChessBrowser.Components.Pages
                         SQLCommandString =
                             // Select Event: Site: Date: White: Black: Result: Moves:
                             "select Events.Name as EventName, Events.Site, Year(Events.Date) as Year, Month(Events.Date) as Month, Day(Events.Date) as Day, WhitePlayer.Name as WhiteName, WhitePlayer.Elo as WhiteElo, BlackPlayer.Name as BlackName, BlackPlayer.Elo as BlackElo, Games.Result, Games.Moves " +
-
-                            // joing Games table to Events where eid match, and join Players where pID match
-                            "from Games join Events on Events.eid=Games.eID " +
-                            "join Players WhitePlayer on WhitePlayer.pID=Games.WhitePlayer " +
-                            "join Players BlackPlayer on BlackPlayer.pID=Games.BlackPlayer";
                     }
                     else  // showMoves not selected
                     {
                         SQLCommandString =
-                            // Select Event: Site: Date: White: Black: Result: Moves:
+                            // Select Event: Site: Date: White: Black: Result:
                             "select Events.Name as EventName, Events.Site, Year(Events.Date) as Year, Month(Events.Date) as Month, Day(Events.Date) as Day, WhitePlayer.Name as WhiteName, WhitePlayer.Elo as WhiteElo, BlackPlayer.Name as BlackName, BlackPlayer.Elo as BlackElo, Games.Result " +
+                    }
 
-                            // joing Games table to Events where eid match, and join Players where pID match
+                    // join Games table to Events where eID match, and join Players where pID match
+                    SQLCommandString +=
                             "from Games join Events on Events.eid=Games.eID " +
                             "join Players WhitePlayer on WhitePlayer.pID=Games.WhitePlayer " +
                             "join Players BlackPlayer on BlackPlayer.pID=Games.BlackPlayer";
-                    }
 
 
                     // If white player, black player, winner, opening moves are specified in the query, they are not white space
@@ -230,7 +219,7 @@ namespace ChessBrowser.Components.Pages
                     bool openingExists = !string.IsNullOrWhiteSpace(opening);
                     bool winnerExists = !string.IsNullOrWhiteSpace(winner);
 
- 
+
                     // Determining if white or black player fields are specified --> or both are specified
                     if (whiteExists && !blackExists)
                     {
@@ -246,21 +235,21 @@ namespace ChessBrowser.Components.Pages
                     }
 
 
-                    // If there is a winner determined from a certain color, add an and
+                    // If a winner specified, add a game result condition checking that the result matches
                     if (winnerExists)
                     {
                         if (whiteExists || blackExists)
                         {
                             SQLCommandString += " and Games.Result = '" + winner + "'";
                         }
-                        else    // If there is a winner determined but no color, just include the where clause
+                        else 
                         {
                             SQLCommandString += " where Games.Result = '" + winner + "'";
                         }
                     }
 
 
-                    // If there is an opening Move that is specified and already the "where" word
+                    // If an opening Move is specified, add a game moves condition checking that the moves start with the given opening input
                     if (openingExists)
                     {
                         if (whiteExists || blackExists || winnerExists)
@@ -273,11 +262,13 @@ namespace ChessBrowser.Components.Pages
                         }
                     }
 
+                    // If a date range is specified, add a condition checking that the event date is between or equal to the given start and end dates
                     if (useDate)
                     {
                         if (whiteExists || blackExists || winnerExists || openingExists)
                         {
-                            SQLCommandString += " and Events.Date >= '" + start.ToString("yyyy-MM-dd") + "' and Events.Date <= '" + end.ToString("yyyy-MM-dd") + "'";
+                            // convert inputs into date format for SQL query
+                            SQLCommandString += " and Events.Date >= '" + start.ToString("yyyy-MM-dd") + "' and Events.Date <= '" + end.ToString("yyyy-MM-dd") + "'"; 
                         }
                         else
                         {
@@ -285,10 +276,10 @@ namespace ChessBrowser.Components.Pages
                         }
                     }
 
-                    Debug.WriteLine("Return SQL CommandString: " + SQLCommandString);
-
+                    // Execute the SELECT command
                     MySqlCommand command = new MySqlCommand(SQLCommandString, conn);
 
+                    // Reads the rows from the query and constructs a formatted result string containing chess games matching the given conditions
                     using (MySqlDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
@@ -298,10 +289,10 @@ namespace ChessBrowser.Components.Pages
                                 "Event: " + reader["EventName"] + "\n" +
                                 "Site: " + reader["Site"] + "\n" +
                                 "Date: " + reader["Month"] + "/" + reader["Day"] + "/" + reader["Year"] + "\n" +
-                                "White: " + reader["WhiteName"] + " (" + reader["WhiteElo"] + ") " +"\n" +
+                                "White: " + reader["WhiteName"] + " (" + reader["WhiteElo"] + ") " + "\n" +
                                 "Black: " + reader["BlackName"] + " (" + reader["BlackElo"] + ") " + "\n" +
                                 "Result: " + reader["Result"] + "\n";
-                                
+
                             if (showMoves)
                             {
                                 parsedResult += reader["Moves"];
@@ -319,21 +310,8 @@ namespace ChessBrowser.Components.Pages
                 }
             }
 
-            return numRows + " results\n" +"\n" + parsedResult;
+            return numRows + " results\n" + "\n" + parsedResult;
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
