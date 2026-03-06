@@ -275,24 +275,14 @@ namespace ChessBrowser.Components.Pages
 
                     if (useDate)
                     {
-                       // DateOnly startDate = DateOnly.FromDateTime(start);
-                        //  DateOnly endDate = DateOnly.FromDateTime(end);
-
-                        if (whiteExists || blackExists || winnerExists ||openingExists)
+                        if (whiteExists || blackExists || winnerExists || openingExists)
                         {
-                            //SQLCommandString += " and Date >" + start.ToString().Split(' ')[0] + " and Date < " + end.ToString().Split(' ')[0];
-                            //SQLCommandString += " and Date > STR_TO_DATE(" + start.ToString().Split(' ')[0].Replace("/", "-") + ", '%m-%d-%Y') and Date < " + end.ToString().Split(' ')[0].Replace("/", "-") + ", '$m-$d-$Y')";
-                            SQLCommandString += " and Date > " + start.ToString("MM-dd-yyyy") + " and Date < " + end.ToString("MM-dd-yyyy");
-
-
+                            SQLCommandString += " and Events.Date >= '" + start.ToString("yyyy-MM-dd") + "' and Events.Date <= '" + end.ToString("yyyy-MM-dd") + "'";
                         }
                         else
                         {
-                            //SQLCommandString += " where Date > STR_TO_DATE(" + start.ToString().Split(' ')[0].Replace("/", "-") + ", '%m-%d-%Y') and Date < STR_TO_DATE(" + end.ToString().Split(' ')[0].Replace("/", "-") + ", '$m-$d-$Y')";
-                            SQLCommandString += " where Date > " + start.ToString("MM-dd-yyyy") + " and Date < " + end.ToString("MM-dd-yyyy");
-
+                            SQLCommandString += " where Events.Date >= '" + start.ToString("yyyy-MM-dd") + "' and Events.Date <= '" + end.ToString("yyyy-MM-dd") + "'";
                         }
-
                     }
 
                     Debug.WriteLine("Return SQL CommandString: " + SQLCommandString);
@@ -314,7 +304,7 @@ namespace ChessBrowser.Components.Pages
                                 
                             if (showMoves)
                             {
-                                parsedResult += reader["Moves"] + "\n";
+                                parsedResult += reader["Moves"];
                             }
                             parsedResult += "\n";
 

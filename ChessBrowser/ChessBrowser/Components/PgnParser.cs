@@ -2,8 +2,16 @@
 
 namespace ChessBrowser.Components
 {
+    /// <summary>
+    /// A class to parse PGN files and extract information into ChessGame objects.
+    /// </summary>
     public class PgnParser
     {
+        /// <summary>
+        /// A method that iterates through all lines from a PGN file and extracts only the needed information to be stored in a ChessGame object, which will be added to and returned as a list of ChessGames.
+        /// </summary>
+        /// <param name="PGNFileLines">A string list of separated PGN lines to be read</param>
+        /// <returns>A list of ChessGame objects extracted from the file lines</returns>
         public List<ChessGame> Parse(string[] PGNFileLines)
         {
 
@@ -14,8 +22,10 @@ namespace ChessBrowser.Components
 
             foreach (string line in PGNFileLines)
             {
-                string[] strings = line.Split('"');
-                if (counter < 10)   // Want to track 9 tags + Moves
+                string[] strings = line.Split('"'); // Each line is split on " to easily extract the information inside the tag without special characters
+                
+                // Look for 9 tags plus a blank line
+                if (counter < 10) 
                 {
 
                     if (strings[0].StartsWith("[Event "))
@@ -60,6 +70,7 @@ namespace ChessBrowser.Components
                         counter++;
                     }
 
+                    // Gets the Result data and converts it into a char representation of the match result
                     else if (strings[0].StartsWith("[Result "))
                     {
                         if (strings[1] == "0-1")
@@ -77,6 +88,7 @@ namespace ChessBrowser.Components
                         counter++;
                     }
 
+                    // Gets the EventDate data and sanitizes incomplete data into a default "0000-00-00" value
                     else if (strings[0].StartsWith("[EventDate "))
                     {
                         string date = strings[1];
@@ -88,24 +100,28 @@ namespace ChessBrowser.Components
                         counter++;
                     }
 
+                    // Move on to reading moves when all tags have been found and a blank line is hit
                     else if (string.IsNullOrWhiteSpace(strings[0]) && counter == 9)
                     {
-                        counter++;  // All 9 tags were found, now store Moves
+                        counter++; 
                     }
                 }
 
-                else if(counter == 10)
+                // Following a blank line, keep reading moves until another blank line is hit
+                else if (counter == 10)
                 {
                     if (string.IsNullOrWhiteSpace(strings[0]))
                     {
-                        counter++;  // Counter == 11, end of game
-                    }else
+                        counter++;
+                    }
+                    else
                     {
-                        game.Moves += line + "\n";  // we are iterating for each line, add full line to game.Moves
+                        game.Moves += line + "\n"; 
                     }
 
                 }
 
+                // Once all moves have been read, adds the ChessGame to the list and clears the ChessGame for the next game
                 if (counter == 11)
                 {
                     listOfGames.Add(game);
@@ -116,7 +132,5 @@ namespace ChessBrowser.Components
             }
             return listOfGames;
         }
-
-
     }
 }
