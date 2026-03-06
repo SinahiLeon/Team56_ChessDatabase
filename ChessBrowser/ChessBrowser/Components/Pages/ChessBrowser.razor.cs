@@ -197,13 +197,13 @@ namespace ChessBrowser.Components.Pages
                     {
                         SQLCommandString =
                             // Select Event: Site: Date: White: Black: Result: Moves:
-                            "select Events.Name as EventName, Events.Site, Year(Events.Date) as Year, Month(Events.Date) as Month, Day(Events.Date) as Day, WhitePlayer.Name as WhiteName, WhitePlayer.Elo as WhiteElo, BlackPlayer.Name as BlackName, BlackPlayer.Elo as BlackElo, Games.Result, Games.Moves " +
+                            "select Events.Name as EventName, Events.Site, Year(Events.Date) as Year, Month(Events.Date) as Month, Day(Events.Date) as Day, WhitePlayer.Name as WhiteName, WhitePlayer.Elo as WhiteElo, BlackPlayer.Name as BlackName, BlackPlayer.Elo as BlackElo, Games.Result, Games.Moves ";
                     }
                     else  // showMoves not selected
                     {
                         SQLCommandString =
                             // Select Event: Site: Date: White: Black: Result:
-                            "select Events.Name as EventName, Events.Site, Year(Events.Date) as Year, Month(Events.Date) as Month, Day(Events.Date) as Day, WhitePlayer.Name as WhiteName, WhitePlayer.Elo as WhiteElo, BlackPlayer.Name as BlackName, BlackPlayer.Elo as BlackElo, Games.Result " +
+                            "select Events.Name as EventName, Events.Site, Year(Events.Date) as Year, Month(Events.Date) as Month, Day(Events.Date) as Day, WhitePlayer.Name as WhiteName, WhitePlayer.Elo as WhiteElo, BlackPlayer.Name as BlackName, BlackPlayer.Elo as BlackElo, Games.Result ";
                     }
 
                     // join Games table to Events where eID match, and join Players where pID match
