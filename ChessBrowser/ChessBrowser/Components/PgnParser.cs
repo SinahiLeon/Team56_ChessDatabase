@@ -79,7 +79,12 @@ namespace ChessBrowser.Components
 
                     else if (strings[0].StartsWith("[EventDate "))
                     {
-                        game.EventDate = strings[1];
+                        string date = strings[1];
+                        if (date.Contains("?"))
+                        {
+                            date = "0000-00-00";
+                        }
+                        game.EventDate = date;
                         counter++;
                     }
 

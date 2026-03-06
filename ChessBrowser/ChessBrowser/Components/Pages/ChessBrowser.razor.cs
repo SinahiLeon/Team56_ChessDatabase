@@ -71,10 +71,10 @@ namespace ChessBrowser.Components.Pages
                     MySqlCommand blackPlayerCmd = conn.CreateCommand();
 
                     blackPlayerCmd.CommandText = "INSERT INTO Players (Name, Elo) VALUES (@name, @elo) ON DUPLICATE KEY UPDATE Elo = IF(@elo > Elo, @elo, Elo);";
-                    
+
                     blackPlayerCmd.Parameters.AddWithValue("@name", "");
                     blackPlayerCmd.Parameters.AddWithValue("@elo", 0);
-                    
+
                     blackPlayerCmd.Prepare();
 
                     MySqlCommand eventCmd = conn.CreateCommand();
@@ -83,20 +83,20 @@ namespace ChessBrowser.Components.Pages
                     eventCmd.Parameters.AddWithValue("@eventName", "");
                     eventCmd.Parameters.AddWithValue("@site", "");
                     eventCmd.Parameters.AddWithValue("@date", "0000-00-00");
-                    
+
                     eventCmd.Prepare();
 
                     MySqlCommand gameCmd = conn.CreateCommand();
                     gameCmd.CommandText = "INSERT IGNORE INTO Games(Round, Result, Moves, BlackPlayer, WhitePlayer, eID) " +
                     "VALUES (@round, @result, @moves, (SELECT pID FROM Players WHERE Name=@blackName), (SELECT pID FROM Players WHERE Name=@whiteName), (SELECT eID FROM Events WHERE Name=@eventName));";
-                    
+
                     gameCmd.Parameters.AddWithValue("@round", "");
                     gameCmd.Parameters.AddWithValue("@result", "");
                     gameCmd.Parameters.AddWithValue("@moves", "");
                     gameCmd.Parameters.AddWithValue("@blackName", "");
                     gameCmd.Parameters.AddWithValue("@whiteName", "");
                     gameCmd.Parameters.AddWithValue("@eventName", "");
-                    
+
                     gameCmd.Prepare();
 
                     foreach (ChessGame g in gamesList)
@@ -124,7 +124,7 @@ namespace ChessBrowser.Components.Pages
                         gameCmd.Parameters["@blackName"].Value = g.Black;
                         gameCmd.Parameters["@whiteName"].Value = g.White;
                         gameCmd.Parameters["@eventName"].Value = g.Event;
-                        
+
                         gameCmd.ExecuteNonQuery();
 
                         //Debug.WriteLine("White: " + g.White + "whiteElo: " + g.WhiteElo + "black: " +
@@ -148,6 +148,15 @@ namespace ChessBrowser.Components.Pages
             }
 
         }
+
+
+
+
+
+
+
+
+
 
 
         /// <summary>
@@ -188,54 +197,126 @@ namespace ChessBrowser.Components.Pages
                     //   Generate and execute an SQL command,
                     //   then parse the results into an appropriate string and return it.
 
-                    string SQLCommandString = "select * from Games join Events on Events.eID=Games.eID";                        //"join Players as p1 on Games.BlackPlayer=(select pID from p1 where Name=" + black + ")" +
-                        //"join Players as p2 on Games.WhitePlayer=(select pID from p2 where Name=" + white + ")" +
-                        //"where Result=" + winner + "and Moves like '" + opening + "%'" + "and Date < " + start +
-                        //"and Date < " + end;
+                    string SQLCommandString;
 
-               
-                    if (!string.IsNullOrWhiteSpace(white))
+                    // if showMoves bool = selected
+                    if (showMoves)
                     {
-                        SQLCommandString += " join Players as p1 on Games.WhitePlayer=(select pID from p1 where Name=" + white + ")";
-                    }
-                    if (!string.IsNullOrWhiteSpace(black))
-                    {
-                        SQLCommandString += " join Players as p2 on Games.BlackPlayer=(select pID from p2 where Name=" + black + ")";
+                        SQLCommandString =
+                            // Select Event: Site: Date: White: Black: Result: Moves:
+                            "select Events.Name as EventName, Events.Site, Year(Events.Date) as Year, Month(Events.Date) as Month, Day(Events.Date) as Day, WhitePlayer.Name as WhiteName, WhitePlayer.Elo as WhiteElo, BlackPlayer.Name as BlackName, BlackPlayer.Elo as BlackElo, Games.Result, Games.Moves " +
 
+                            // joing Games table to Events where eid match, and join Players where pID match
+                            "from Games join Events on Events.eid=Games.eID " +
+                            "join Players WhitePlayer on WhitePlayer.pID=Games.WhitePlayer " +
+                            "join Players BlackPlayer on BlackPlayer.pID=Games.BlackPlayer";
                     }
-                    bool winnerExists = !string.IsNullOrWhiteSpace(winner);
+                    else  // showMoves not selected
+                    {
+                        SQLCommandString =
+                            // Select Event: Site: Date: White: Black: Result: Moves:
+                            "select Events.Name as EventName, Events.Site, Year(Events.Date) as Year, Month(Events.Date) as Month, Day(Events.Date) as Day, WhitePlayer.Name as WhiteName, WhitePlayer.Elo as WhiteElo, BlackPlayer.Name as BlackName, BlackPlayer.Elo as BlackElo, Games.Result " +
+
+                            // joing Games table to Events where eid match, and join Players where pID match
+                            "from Games join Events on Events.eid=Games.eID " +
+                            "join Players WhitePlayer on WhitePlayer.pID=Games.WhitePlayer " +
+                            "join Players BlackPlayer on BlackPlayer.pID=Games.BlackPlayer";
+                    }
+
+
+                    // If white player, black player, winner, opening moves are specified in the query, they are not white space
+                    bool whiteExists = !string.IsNullOrWhiteSpace(white);
+                    bool blackExists = !string.IsNullOrWhiteSpace(black);
                     bool openingExists = !string.IsNullOrWhiteSpace(opening);
-                    if(winnerExists || openingExists || useDate)
+                    bool winnerExists = !string.IsNullOrWhiteSpace(winner);
+
+ 
+                    // Determining if white or black player fields are specified --> or both are specified
+                    if (whiteExists && !blackExists)
                     {
-                        SQLCommandString += " where";
-                        if (winnerExists)
+                        SQLCommandString += " where WhitePlayer.Name = '" + white + "'";
+                    }
+                    if (blackExists && !whiteExists)
+                    {
+                        SQLCommandString += " where BlackPlayer.Name = '" + black + "'";
+                    }
+                    if (whiteExists && blackExists)
+                    {
+                        SQLCommandString += " where WhitePlayer.Name = '" + white + "' and BlackPlayer.Name = '" + black + "'";
+                    }
+
+
+                    // If there is a winner determined from a certain color, add an and
+                    if (winnerExists)
+                    {
+                        if (whiteExists || blackExists)
                         {
-                            SQLCommandString += " Result=" + winner;
+                            SQLCommandString += " and Games.Result = '" + winner + "'";
                         }
-                        if (openingExists)
+                        else    // If there is a winner determined but no color, just include the where clause
                         {
-                            if (winnerExists)
-                            {
-                                SQLCommandString += " and";
-                            }
-                            SQLCommandString += " Moves like '" + opening + "%'";
-                        }
-                        if (useDate)
-                        {
-                            if(winnerExists || openingExists)
-                            {
-                                SQLCommandString += " and";
-                            }
-                            SQLCommandString += " Date > " + start + "and Date < " + end;
+                            SQLCommandString += " where Games.Result = '" + winner + "'";
                         }
                     }
+
+
+                    // If there is an opening Move that is specified and already the "where" word
+                    if (openingExists)
+                    {
+                        if (whiteExists || blackExists || winnerExists)
+                        {
+                            SQLCommandString += " and Games.Moves like '" + opening + "%'";
+                        }
+                        else    // Opening move specified but no other field is filled in
+                        {
+                            SQLCommandString += " where Games.Moves like '" + opening + "%'";
+                        }
+                    }
+
+                    if (useDate)
+                    {
+                       // DateOnly startDate = DateOnly.FromDateTime(start);
+                        //  DateOnly endDate = DateOnly.FromDateTime(end);
+
+                        if (whiteExists || blackExists || winnerExists ||openingExists)
+                        {
+                            //SQLCommandString += " and Date >" + start.ToString().Split(' ')[0] + " and Date < " + end.ToString().Split(' ')[0];
+                            //SQLCommandString += " and Date > STR_TO_DATE(" + start.ToString().Split(' ')[0].Replace("/", "-") + ", '%m-%d-%Y') and Date < " + end.ToString().Split(' ')[0].Replace("/", "-") + ", '$m-$d-$Y')";
+                            SQLCommandString += " and Date > " + start.ToString("MM-dd-yyyy") + " and Date < " + end.ToString("MM-dd-yyyy");
+
+
+                        }
+                        else
+                        {
+                            //SQLCommandString += " where Date > STR_TO_DATE(" + start.ToString().Split(' ')[0].Replace("/", "-") + ", '%m-%d-%Y') and Date < STR_TO_DATE(" + end.ToString().Split(' ')[0].Replace("/", "-") + ", '$m-$d-$Y')";
+                            SQLCommandString += " where Date > " + start.ToString("MM-dd-yyyy") + " and Date < " + end.ToString("MM-dd-yyyy");
+
+                        }
+
+                    }
+
+                    Debug.WriteLine("Return SQL CommandString: " + SQLCommandString);
 
                     MySqlCommand command = new MySqlCommand(SQLCommandString, conn);
 
-                    using(MySqlDataReader reader = command.ExecuteReader())
+                    using (MySqlDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
+                            numRows++;
+                            parsedResult +=
+                                "Event: " + reader["EventName"] + "\n" +
+                                "Site: " + reader["Site"] + "\n" +
+                                "Date: " + reader["Month"] + "/" + reader["Day"] + "/" + reader["Year"] + "\n" +
+                                "White: " + reader["WhiteName"] + " (" + reader["WhiteElo"] + ") " +"\n" +
+                                "Black: " + reader["BlackName"] + " (" + reader["BlackElo"] + ") " + "\n" +
+                                "Result: " + reader["Result"] + "\n";
+                                
+                            if (showMoves)
+                            {
+                                parsedResult += reader["Moves"] + "\n";
+                            }
+                            parsedResult += "\n";
 
                         }
                     }
@@ -248,8 +329,24 @@ namespace ChessBrowser.Components.Pages
                 }
             }
 
-            return numRows + " results\n" + parsedResult;
+            return numRows + " results\n" +"\n" + parsedResult;
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         private string GetConnectionString()
